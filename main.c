@@ -21,6 +21,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "FreeRTOS.h"
+#include "task.h"
+#include "timers.h"
+
 #include "System32.h"
 #include "grbl_advance.h"
 #include "Ethernet.h"
@@ -33,6 +37,8 @@
 #include "ComIf.h"
 #include "Platform.h"
 
+#define MAIN_TASK_STACK_SIZE configMINIMAL_STACK_SIZE
+#define MAIN_TASK_PRIO (configMAX_PRIORITIES - 2)
 
 // Declare system global variable structure
 System_t sys;
@@ -55,39 +61,8 @@ volatile uint8_t sys_rt_exec_accessory_override; // Global realtime executor bit
 #endif
 
 
-int main(void)
+void vMainTask(void *pvParameters __attribute__((unused)))
 {
-    // Init formatted output
-    Printf_Init();
-    System_Init();
-    Stepper_Init();
-    Settings_Init();
-
-    System_ResetPosition();
-
-#ifdef ETH_IF
-    // Initialize W5500
-    Ethernet_Init(MAC, &IP, &MyDns, &GatewayIP, &SubnetMask);
-
-    // Initialize TCP server
-    ServerTCP_Init(ETH_SOCK, ETH_PORT);
-#endif
-
-    // Initialize GrIP protocol
-    GrIP_Init();
-
-    // Init SysTick 1ms
-    SysTick_Init();
-
-    if(BIT_IS_TRUE(settings.flags, BITFLAG_HOMING_ENABLE))
-    {
-        sys.state = STATE_ALARM;
-    }
-    else
-    {
-        sys.state = STATE_IDLE;
-    }
-
     // Grbl-Advanced initialization loop upon power-up or a system abort. For the latter, all processes
     // will return to this loop to be cleanly re-initialized.
     while(1)
@@ -134,6 +109,57 @@ int main(void)
         // Clear serial buffer after soft reset to prevent undefined behavior
         FifoUsart_Init();
     }
+}
+
+void vTimerCallback(TimerHandle_t xTimer __attribute__((unused)))
+{
+    Poll_States();
+}
+
+int main(void)
+{
+    BaseType_t ret;
+    TimerHandle_t xTimer;
+
+    // Init formatted output
+    Printf_Init();
+    System_Init();
+    Stepper_Init();
+    Settings_Init();
+
+    System_ResetPosition();
+
+#ifdef ETH_IF
+    // Initialize W5500
+    Ethernet_Init(MAC, &IP, &MyDns, &GatewayIP, &SubnetMask);
+
+    // Initialize TCP server
+    ServerTCP_Init(ETH_SOCK, ETH_PORT);
+#endif
+
+    // Initialize GrIP protocol
+    GrIP_Init();
+
+    // Init SysTick 1ms
+    // SysTick_Init();
+
+    if(BIT_IS_TRUE(settings.flags, BITFLAG_HOMING_ENABLE))
+    {
+        sys.state = STATE_ALARM;
+    }
+    else
+    {
+        sys.state = STATE_IDLE;
+    }
+
+    xTimer = xTimerCreate("Timer", pdMS_TO_TICKS(1), pdTRUE, (void *)0, vTimerCallback);
+    configASSERT(xTimer != NULL);
+
+    ret = xTaskCreate(vMainTask, "main_task", MAIN_TASK_STACK_SIZE, NULL, MAIN_TASK_PRIO, NULL);
+    configASSERT(ret == pdPASS);
+
+    xTimerStart(xTimer, 0);
+    vTaskStartScheduler();
 
     return 0;
 }

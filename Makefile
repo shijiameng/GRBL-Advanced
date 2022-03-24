@@ -10,13 +10,12 @@
 .SUFFIXES:
 #---------------------------------------------------------------------------------
 # Location of gcc-arm-none-eabi toolchain
-GCC_BASE	= 	/opt/gcc-arm-none-eabi-9-2020-q2-update/bin
 
-CC          =   ${GCC_BASE}/arm-none-eabi-gcc
-CXX         =   ${GCC_BASE}/arm-none-eabi-g++
-OBJCPY		=	${GCC_BASE}/arm-none-eabi-objcopy
-SIZE		=	${GCC_BASE}/arm-none-eabi-size
-OBJDUMP		= 	${GCC_BASE}/arm-none-eabi-objdump
+CC          =   arm-none-eabi-gcc
+CXX         =   arm-none-eabi-g++
+OBJCPY		=	arm-none-eabi-objcopy
+SIZE		=	arm-none-eabi-size
+OBJDUMP		= 	arm-none-eabi-objdump
 
 #---------------------------------------------------------------------------------
 # TARGET is the name of the output
@@ -28,15 +27,17 @@ TARGET		:=	GRBL_Advanced
 BUILD       :=	build
 SOURCES		:=	./ ARM/cmsis/ grbl/ HAL/ HAL/EXTI HAL/FLASH HAL/GPIO HAL/I2C HAL/SPI HAL/STM32 \
                 HAL/TIM HAL/USART ARM/SPL/src Src/ Libraries/GrIP Libraries/CRC Libraries/Ethernet \
-                Libraries/Ethernet/utility Libraries/Encoder Libraries/EEPROM Libraries/Printf
+                Libraries/Ethernet/utility Libraries/Encoder Libraries/EEPROM Libraries/Printf \
+				Libraries/FreeRTOS Libraries/FreeRTOS/include \
+				Libraries/FreeRTOS/portable 
 
 INCLUDES    :=	$(SOURCES) ARM/SPL/inc
 
-LD_FILE		= stm32f411re_flash.ld
-DEFINES		= -DSTM32F411xE -DSTM32F411RE
+# LD_FILE		= stm32f411re_flash.ld
+# DEFINES		= -DSTM32F411xE -DSTM32F411RE
 
-#LD_FILE		= stm32f446re_flash.ld
-#DEFINES		= -DSTM32F446xx -DSTM32F446RE
+LD_FILE		= stm32f446re_flash.ld
+DEFINES		= -DSTM32F446xx -DSTM32F446RE
 
 #---------------------------------------------------------------------------------
 # options for code generation

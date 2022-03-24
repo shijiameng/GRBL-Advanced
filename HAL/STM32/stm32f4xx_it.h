@@ -57,6 +57,7 @@ void USART1_IRQHandler(void);
 void USART2_IRQHandler(void);
 void USART6_IRQHandler(void);
 
+void Poll_States(void);
 
 #ifdef __cplusplus
 }
